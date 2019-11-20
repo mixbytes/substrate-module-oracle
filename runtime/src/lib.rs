@@ -4,7 +4,6 @@
 #![cfg_attr(not(feature = "std"), feature(alloc))]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit="256"]
-
 #[cfg(feature = "std")]
 use serde::{Serialize, Deserialize};
 use parity_codec::{Encode, Decode};
@@ -57,6 +56,7 @@ pub type Nonce = u64;
 
 /// Used for the module template in `./template.rs`
 mod template;
+mod oracle;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -298,4 +298,9 @@ impl_runtime_apis! {
 			Consensus::authorities()
 		}
 	}
+}
+
+impl oracle::Trait for Runtime {
+    // add required types here
+    type Event = Event;
 }
