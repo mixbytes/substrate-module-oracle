@@ -209,6 +209,8 @@ impl sudo::Trait for Runtime
 impl oracle::Trait for Runtime
 {
     type Event = Event;
+    type ExAssetValueType = u128;
+    type OracleId = u32;
 }
 
 construct_runtime!(
@@ -224,7 +226,7 @@ construct_runtime!(
 		Indices: indices,
 		Balances: balances,
 		Sudo: sudo,
-		Oracle: oracle,
+		Oracle: oracle::{Module, Call, Storage, Event<T>},
 	}
 );
 

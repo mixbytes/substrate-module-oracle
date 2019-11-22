@@ -1,53 +1,95 @@
-use support::{decl_event, decl_module, decl_storage, dispatch::Result, StorageValue};
-use system::ensure_signed;
-use rstd::vec::Vec;
+use support::{
+    decl_event, decl_module, decl_storage, dispatch::Result, storage::StorageMap, Parameter,
+    StorageValue,
+};
 
-type AssetType = u128;
+use support::codec::{Decode, Encode};
+
+use rstd::vec::Vec;
+use runtime_primitives::traits::{Member, One, SimpleArithmetic};
+use system::ensure_signed;
 
 pub trait Trait: system::Trait
 {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+    type ExAssetValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
+    type OracleId: Parameter + SimpleArithmetic + Default + Copy;
 }
 
-decl_storage!
+#[derive(Encode, Decode, Default)]
+struct OracleData<AccountId, AssetName, AssetValueType>
 {
+    source: AccountId,
+    asset_name: AssetName,
+    asset_value: Option<AssetValueType>,
+}
+
+decl_storage! {
     trait Store for Module<T: Trait> as Oracle
     {
-        pub AssetValue get(asset_value): Option<AssetType>;
-        pub AssetName get(asset_name) config(): Vec<u8>;
-        OracleId get(oracle_id) config(): T::AccountId;
+        NextOracleId get(next_oracle_id): T::OracleId;
+        OraclesMap: map T::OracleId => OracleData<T::AccountId, Vec<u8>, T::ExAssetValueType>;
     }
 }
 
-decl_module! 
-{
-    pub struct Module<T: Trait> for enum Call where origin: T::Origin 
+decl_module! {
+    pub struct Module<T: Trait> for enum Call where origin: T::Origin
     {
         fn deposit_event<T>() = default;
 
-        pub fn store_course(origin, course: AssetType) -> Result 
+        pub fn commit_asset_value(origin, oracle_id: T::OracleId, new_value: T::ExAssetValueType) -> Result
         {
             let who = ensure_signed(origin)?;
 
-            if <OracleId<T>>::get() != who 
+            if <OraclesMap<T>>::get(oracle_id).source != who
             {
-                Err("Can't send price: no permission")
+                Err("Can't commit price: no permission")
             }
             else
             {
-                <AssetValue<T>>::put(course);
-                Self::deposit_event(RawEvent::CourseStored(who, course));
+                <OraclesMap<T>>::mutate(oracle_id, |data| {data.asset_value = Some(new_value);});
+                Self::deposit_event(RawEvent::CourseStored(oracle_id));
                 Ok(())
             }
         }
-    }
 
+        pub fn create_oracle(origin, asset_name: Vec<u8>)
+        {
+            let who: T::AccountId = ensure_signed(origin)?;
+
+            <OraclesMap<T>>::insert(Self::get_next_oracle_id(),
+                OracleData {
+                 source: who,
+                 asset_name: asset_name,
+                 asset_value: None});
+        }
+   }
 }
 
 decl_event!(
     pub enum Event<T>
-    where AccountId = <T as system::Trait>::AccountId,
+    where OracleId = <T as Trait>::OracleId,
     {
-        CourseStored(AccountId, AssetType),
+        CourseStored(OracleId),
     }
 );
+
+impl<T: Trait> Module<T>
+{
+    fn get_next_oracle_id() -> T::OracleId
+    {
+        let id: T::OracleId = Self::next_oracle_id();
+        <NextOracleId<T>>::mutate(|id| *id += One::one());
+        id
+    }
+
+    pub fn get_max_oracle_id() -> T::OracleId
+    {
+        Self::next_oracle_id() - One::one()
+    }
+
+    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExAssetValueType>
+    {
+        <OraclesMap<T>>::get(oracle_id).asset_value.clone()
+    }
+}
