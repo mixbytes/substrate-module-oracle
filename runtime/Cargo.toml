@@ -1,3 +1,9 @@
+[package]
+authors = ['Parity Technologies <admin@parity.io>']
+edition = '2018'
+name = 'oracle-node-runtime'
+version = '1.0.0'
+
 [dependencies.aura]
 default_features = false
 git = 'https://github.com/paritytech/substrate.git'
@@ -123,6 +129,7 @@ rev = 'cc1d67e973fd02c0c997b164ba516cf041bf21f1'
 [features]
 default = ['std']
 std = [
+    'runtime-primitives/std',
     'parity-codec/std',
     'primitives/std',
     'client/std',
@@ -143,9 +150,3 @@ std = [
     'consensus-aura/std',
     'offchain-primitives/std',
 ]
-
-[package]
-authors = ['Parity Technologies <admin@parity.io>']
-edition = '2018'
-name = 'oracle-node-runtime'
-version = '1.0.0'
