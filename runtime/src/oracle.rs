@@ -6,31 +6,47 @@ use support::{
 use support::codec::{Decode, Encode};
 use timestamp;
 
-
 use rstd::vec::Vec;
 use runtime_primitives::traits::{Member, One, SimpleArithmetic};
 use system::ensure_signed;
 
-pub trait Trait: system::Trait + timestamp::Trait
+type AssetName = Vec<u8>;
+
+pub trait Trait: timestamp::Trait
 {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
     type ExAssetValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
     type OracleId: Parameter + SimpleArithmetic + Default + Copy;
 }
 
-#[derive(Encode, Decode, Default)]
-struct OracleData<AccountId, AssetName, AssetValueType, Moment>
+#[derive(Encode, Decode)]
+struct OracleData<T: Trait>
 {
-    source: AccountId,
+    source_node: <T as system::Trait>::AccountId,
     asset_name: AssetName,
-    asset_value: Option<(AssetValueType, Moment)>,
+    asset_value: Option<(
+        <T as Trait>::ExAssetValueType,
+        <T as timestamp::Trait>::Moment,
+    )>,
+}
+
+impl<T: Trait> Default for OracleData<T>
+{
+    fn default() -> Self
+    {
+        OracleData {
+            source_node: <T as system::Trait>::AccountId::default(),
+            asset_name: AssetName::default(),
+            asset_value: None,
+        }
+    }
 }
 
 decl_storage! {
     trait Store for Module<T: Trait> as Oracle
     {
         NextOracleId get(last_oracle_id): T::OracleId;
-        OraclesMap: map T::OracleId => OracleData<T::AccountId, Vec<u8>, T::ExAssetValueType, T::Moment>;
+        OraclesMap: map T::OracleId => OracleData<T>;
     }
 }
 
@@ -43,14 +59,13 @@ decl_module! {
         {
             let who = ensure_signed(origin)?;
 
-            if <OraclesMap<T>>::get(oracle_id).source != who
+            if <OraclesMap<T>>::get(oracle_id).source_node != who
             {
                 Err("Can't commit price: no permission")
             }
             else
             {
-                <OraclesMap<T>>::mutate(oracle_id, |data|
-                {
+                <OraclesMap<T>>::mutate(oracle_id, |data| {
                     let now = <timestamp::Module<T>>::get();
                     data.asset_value = Some((new_value, now));
                 });
@@ -65,7 +80,7 @@ decl_module! {
 
             <OraclesMap<T>>::insert(Self::get_next_oracle_id(),
                 OracleData {
-                    source: who,
+                    source_node: who,
                     asset_name: asset_name,
                     asset_value: None
                 });
@@ -75,7 +90,8 @@ decl_module! {
 
 decl_event!(
     pub enum Event<T>
-    where OracleId = <T as Trait>::OracleId,
+    where
+        OracleId = <T as Trait>::OracleId,
     {
         CourseStored(OracleId),
     }
@@ -109,6 +125,5 @@ impl<T: Trait> Module<T>
             Some((val, _time)) => Some(val),
             None => None,
         }
-sdd
     }
 }
