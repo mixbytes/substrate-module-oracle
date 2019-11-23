@@ -15,7 +15,7 @@ type AssetName = Vec<u8>;
 pub trait Trait: timestamp::Trait
 {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
-    type ExAssetValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
+    type ExternalValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
     type OracleId: Parameter + SimpleArithmetic + Default + Copy;
 }
 
@@ -23,9 +23,9 @@ pub trait Trait: timestamp::Trait
 struct OracleData<T: Trait>
 {
     source_node: <T as system::Trait>::AccountId,
-    asset_name: AssetName,
-    asset_value: Option<(
-        <T as Trait>::ExAssetValueType,
+    external_name: AssetName,
+    external_value: Option<(
+        <T as Trait>::ExternalValueType,
         <T as timestamp::Trait>::Moment,
     )>,
 }
@@ -36,8 +36,8 @@ impl<T: Trait> Default for OracleData<T>
     {
         OracleData {
             source_node: <T as system::Trait>::AccountId::default(),
-            asset_name: AssetName::default(),
-            asset_value: None,
+            external_name: AssetName::default(),
+            external_value: None,
         }
     }
 }
@@ -55,7 +55,7 @@ decl_module! {
     {
         fn deposit_event<T>() = default;
 
-        pub fn commit_asset_value(origin, oracle_id: T::OracleId, new_value: T::ExAssetValueType) -> Result
+        pub fn commit_asset_value(origin, oracle_id: T::OracleId, new_asset_value: T::ExternalValueType) -> Result
         {
             let who = ensure_signed(origin)?;
 
@@ -66,23 +66,22 @@ decl_module! {
             else
             {
                 <OraclesMap<T>>::mutate(oracle_id, |data| {
-                    let now = <timestamp::Module<T>>::get();
-                    data.asset_value = Some((new_value, now));
+                    data.external_value = Some((new_asset_value, <timestamp::Module<T>>::get()));
                 });
-                Self::deposit_event(RawEvent::CourseStored(oracle_id));
+                Self::deposit_event(RawEvent::CourseStored(oracle_id, new_asset_value));
                 Ok(())
             }
         }
 
-        pub fn create_oracle(origin, asset_name: Vec<u8>)
+        pub fn create_oracle(origin, external_name: Vec<u8>)
         {
             let who: T::AccountId = ensure_signed(origin)?;
 
             <OraclesMap<T>>::insert(Self::get_next_oracle_id(),
                 OracleData {
                     source_node: who,
-                    asset_name: asset_name,
-                    asset_value: None
+                    external_name: external_name,
+                    external_value: None
                 });
         }
    }
@@ -90,10 +89,10 @@ decl_module! {
 
 decl_event!(
     pub enum Event<T>
-    where
-        OracleId = <T as Trait>::OracleId,
+    where OracleId = <T as Trait>::OracleId,
+          ExternalValueType = <T as Trait>::ExternalValueType,
     {
-        CourseStored(OracleId),
+        CourseStored(OracleId, ExternalValueType),
     }
 );
 
@@ -108,19 +107,12 @@ impl<T: Trait> Module<T>
 
     pub fn get_max_oracle_id() -> Option<T::OracleId>
     {
-        if Self::last_oracle_id() != T::OracleId::default()
-        {
-            Some(Self::last_oracle_id())
-        }
-        else
-        {
-            None
-        }
+        if Self::last_oracle_id() != T::OracleId::default() { Some(Self::last_oracle_id()) } else { None }
     }
 
-    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExAssetValueType>
+    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType>
     {
-        match <OraclesMap<T>>::get(oracle_id).asset_value
+        match <OraclesMap<T>>::get(oracle_id).external_value
         {
             Some((val, _time)) => Some(val),
             None => None,

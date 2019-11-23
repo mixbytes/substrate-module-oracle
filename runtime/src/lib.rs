@@ -209,7 +209,7 @@ impl sudo::Trait for Runtime
 impl oracle::Trait for Runtime
 {
     type Event = Event;
-    type ExAssetValueType = u128;
+    type ExternalValueType = u128;
     type OracleId = u32;
 }
 
