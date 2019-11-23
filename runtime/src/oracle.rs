@@ -4,12 +4,14 @@ use support::{
 };
 
 use support::codec::{Decode, Encode};
+use timestamp;
+
 
 use rstd::vec::Vec;
 use runtime_primitives::traits::{Member, One, SimpleArithmetic};
 use system::ensure_signed;
 
-pub trait Trait: system::Trait
+pub trait Trait: system::Trait + timestamp::Trait
 {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
     type ExAssetValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
@@ -17,18 +19,18 @@ pub trait Trait: system::Trait
 }
 
 #[derive(Encode, Decode, Default)]
-struct OracleData<AccountId, AssetName, AssetValueType>
+struct OracleData<AccountId, AssetName, AssetValueType, Moment>
 {
     source: AccountId,
     asset_name: AssetName,
-    asset_value: Option<AssetValueType>,
+    asset_value: Option<(AssetValueType, Moment)>,
 }
 
 decl_storage! {
     trait Store for Module<T: Trait> as Oracle
     {
-        NextOracleId get(next_oracle_id): T::OracleId;
-        OraclesMap: map T::OracleId => OracleData<T::AccountId, Vec<u8>, T::ExAssetValueType>;
+        NextOracleId get(last_oracle_id): T::OracleId;
+        OraclesMap: map T::OracleId => OracleData<T::AccountId, Vec<u8>, T::ExAssetValueType, T::Moment>;
     }
 }
 
@@ -47,7 +49,11 @@ decl_module! {
             }
             else
             {
-                <OraclesMap<T>>::mutate(oracle_id, |data| {data.asset_value = Some(new_value);});
+                <OraclesMap<T>>::mutate(oracle_id, |data|
+                {
+                    let now = <timestamp::Module<T>>::get();
+                    data.asset_value = Some((new_value, now));
+                });
                 Self::deposit_event(RawEvent::CourseStored(oracle_id));
                 Ok(())
             }
@@ -59,9 +65,10 @@ decl_module! {
 
             <OraclesMap<T>>::insert(Self::get_next_oracle_id(),
                 OracleData {
-                 source: who,
-                 asset_name: asset_name,
-                 asset_value: None});
+                    source: who,
+                    asset_name: asset_name,
+                    asset_value: None
+                });
         }
    }
 }
@@ -78,18 +85,30 @@ impl<T: Trait> Module<T>
 {
     fn get_next_oracle_id() -> T::OracleId
     {
-        let id: T::OracleId = Self::next_oracle_id();
+        let id: T::OracleId = Self::last_oracle_id();
         <NextOracleId<T>>::mutate(|id| *id += One::one());
         id
     }
 
-    pub fn get_max_oracle_id() -> T::OracleId
+    pub fn get_max_oracle_id() -> Option<T::OracleId>
     {
-        Self::next_oracle_id() - One::one()
+        if Self::last_oracle_id() != T::OracleId::default()
+        {
+            Some(Self::last_oracle_id())
+        }
+        else
+        {
+            None
+        }
     }
 
     pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExAssetValueType>
     {
-        <OraclesMap<T>>::get(oracle_id).asset_value.clone()
+        match <OraclesMap<T>>::get(oracle_id).asset_value
+        {
+            Some((val, _time)) => Some(val),
+            None => None,
+        }
+sdd
     }
 }
