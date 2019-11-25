@@ -120,9 +120,4 @@ impl<T: Trait> Module<T>
             None => None,
         }
     }
-
-    fn get_oracle_id() -> Option<T::AccountId>
-    {
-        let local_keys = T::OracleId::all
-    }
 }
