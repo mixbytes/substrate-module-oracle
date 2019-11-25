@@ -2,7 +2,7 @@ use primitives::{ed25519, sr25519, Pair};
 use oracle_node_runtime::{
 	AccountId, GenesisConfig, ConsensusConfig, TimestampConfig, BalancesConfig,
 	SudoConfig,
-//	OracleConfig,
+	OracleConfig,
 	IndicesConfig,
 };
 use substrate_service;
@@ -117,9 +117,8 @@ fn testnet_genesis(initial_authorities: Vec<AuthorityId>, endowed_accounts: Vec<
 		sudo: Some(SudoConfig {
 			key: root_key,
 		}),
-//		oracle: Some(OracleConfig{
-//			asset_name: String::from("Hello").into_bytes(),
-//			oracle_id: account_key("Oracle"),
-//		}),
+		oracle: Some(OracleConfig{
+			default_oracles: vec![],
+		}),
 	}
 }

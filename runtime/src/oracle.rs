@@ -20,7 +20,7 @@ pub trait Trait: timestamp::Trait
 }
 
 #[derive(Encode, Decode)]
-struct OracleData<T: Trait>
+pub struct OracleData<T: Trait>
 {
     source_node: <T as system::Trait>::AccountId,
     external_name: AssetName,
@@ -45,8 +45,28 @@ impl<T: Trait> Default for OracleData<T>
 decl_storage! {
     trait Store for Module<T: Trait> as Oracle
     {
-        NextOracleId get(last_oracle_id): T::OracleId;
-        OraclesMap: map T::OracleId => OracleData<T>;
+        NextOracleId get(last_oracle_id) build(|conf: &GenesisConfig<T>| {
+            match conf.default_oracles.iter().map(|&(ref oracle_id, ref _sn, ref _en)| oracle_id).max()
+            {
+                Some(&max) => max + One::one(),
+                None => T::OracleId::default(),
+            }
+        }): T::OracleId;
+
+        pub OraclesMap get(oracles) build(|conf: &GenesisConfig<T>| {
+            conf.default_oracles.iter().map(|&(ref oracle_id, ref source_node, ref external_name)| {
+                (oracle_id.clone(), OracleData {
+                                        source_node: source_node.clone(),
+                                        external_name: external_name.clone(),
+                                        external_value: None
+                                    })
+            }).collect::<Vec<_>>()
+        }): map T::OracleId => OracleData<T>
+    }
+
+    add_extra_genesis
+    {
+        config(default_oracles): Vec<(T::OracleId, T::AccountId, AssetName)>;
     }
 }
 
