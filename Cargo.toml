@@ -51,7 +51,7 @@ rev = 'cc1d67e973fd02c0c997b164ba516cf041bf21f1'
 
 [dependencies.substrate-client]
 git = 'https://github.com/paritytech/substrate.git'
-rev = 'cc1d67e973fd02c/run0c997b164ba516cf041bf21f1'
+rev = 'cc1d67e973fd02c0c997b164ba516cf041bf21f1'
 
 [dependencies.substrate-executor]
 git = 'https://github.com/paritytech/substrate.git'
