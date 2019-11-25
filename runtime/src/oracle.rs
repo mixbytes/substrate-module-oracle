@@ -75,7 +75,7 @@ decl_module! {
             }
         }
 
-        pub fn create_oracle(origin, external_name: Vec<u8>)
+        pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>)
         {
             let who: T::AccountId = ensure_signed(origin)?;
 
@@ -83,7 +83,10 @@ decl_module! {
                 OracleData {
                     source_node: who,
                     external_name: external_name,
-                    external_value: None
+                    external_value: match start_external_value {
+                        Some(ex_value) => Some((ex_value, <timestamp::Module<T>>::get())),
+                        None => None,
+                    },
                 });
         }
    }
