@@ -33,7 +33,7 @@ git = 'https://github.com/paritytech/substrate.git'
 package = 'substrate-network'
 rev = 'cc1d67e973fd02c0c997b164ba516cf041bf21f1'
 
-[dependencies.oracle-node-runtime]
+[dependencies.substrate-module-oracle-runtime]
 path = 'runtime'
 
 [dependencies.primitives]
@@ -51,7 +51,7 @@ rev = 'cc1d67e973fd02c0c997b164ba516cf041bf21f1'
 
 [dependencies.substrate-client]
 git = 'https://github.com/paritytech/substrate.git'
-rev = 'cc1d67e973fd02c0c997b164ba516cf041bf21f1'
+rev = 'cc1d67e973fd02c/run0c997b164ba516cf041bf21f1'
 
 [dependencies.substrate-executor]
 git = 'https://github.com/paritytech/substrate.git'
@@ -76,8 +76,8 @@ vergen = '3'
 panic = 'unwind'
 
 [package]
-authors = ['Parity Technologies <admin@parity.io>']
+authors = ['sadsnake <sadsnake@mixbytes.io>']
 build = 'build.rs'
 edition = '2018'
-name = 'oracle-node'
+name = 'substrate-module-oracle'
 version = '1.0.0'
