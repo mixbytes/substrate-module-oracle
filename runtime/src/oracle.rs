@@ -55,7 +55,9 @@ decl_module! {
     {
         fn deposit_event<T>() = default;
 
-        pub fn commit_asset_value(origin, oracle_id: T::OracleId, new_asset_value: T::ExternalValueType) -> Result
+        pub fn commit_external_value(origin,
+            oracle_id: T::OracleId,
+            new_external_value: T::ExternalValueType) -> Result
         {
             let who = ensure_signed(origin)?;
 
@@ -66,9 +68,9 @@ decl_module! {
             else
             {
                 <OraclesMap<T>>::mutate(oracle_id, |data| {
-                    data.external_value = Some((new_asset_value, <timestamp::Module<T>>::get()));
+                    data.external_value = Some((new_external_value, <timestamp::Module<T>>::get()));
                 });
-                Self::deposit_event(RawEvent::CourseStored(oracle_id, new_asset_value));
+                Self::deposit_event(RawEvent::ExternalValueStored(oracle_id, new_external_value));
                 Ok(())
             }
         }
@@ -92,7 +94,7 @@ decl_event!(
     where OracleId = <T as Trait>::OracleId,
           ExternalValueType = <T as Trait>::ExternalValueType,
     {
-        CourseStored(OracleId, ExternalValueType),
+        ExternalValueStored(OracleId, ExternalValueType),
     }
 );
 
@@ -117,5 +119,10 @@ impl<T: Trait> Module<T>
             Some((val, _time)) => Some(val),
             None => None,
         }
+    }
+
+    fn get_oracle_id() -> Option<T::AccountId>
+    {
+        let local_keys = T::OracleId::all
     }
 }
