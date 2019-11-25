@@ -12,16 +12,14 @@ use system::ensure_signed;
 
 type AssetName = Vec<u8>;
 
-pub trait Trait: timestamp::Trait
-{
+pub trait Trait: timestamp::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
     type ExternalValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
     type OracleId: Parameter + SimpleArithmetic + Default + Copy;
 }
 
 #[derive(Encode, Decode)]
-pub struct OracleData<T: Trait>
-{
+pub struct OracleData<T: Trait> {
     source_node: <T as system::Trait>::AccountId,
     external_name: AssetName,
     external_value: Option<(
@@ -30,10 +28,8 @@ pub struct OracleData<T: Trait>
     )>,
 }
 
-impl<T: Trait> Default for OracleData<T>
-{
-    fn default() -> Self
-    {
+impl<T: Trait> Default for OracleData<T> {
+    fn default() -> Self {
         OracleData {
             source_node: <T as system::Trait>::AccountId::default(),
             external_name: AssetName::default(),
@@ -43,15 +39,14 @@ impl<T: Trait> Default for OracleData<T>
 }
 
 decl_storage! {
-    trait Store for Module<T: Trait> as Oracle
-    {
+    trait Store for Module<T: Trait> as Oracle {
         NextOracleId get(last_oracle_id) build(|conf: &GenesisConfig<T>| {
-            match conf.default_oracles.iter().map(|&(ref oracle_id, ref _sn, ref _en)| oracle_id).max()
-            {
+            match conf.default_oracles.iter().map(|&(ref oracle_id, ref _sn, ref _en)| oracle_id).max() {
                 Some(&max) => max + One::one(),
                 None => T::OracleId::default(),
             }
         }): T::OracleId;
+        // ToDo add check for oracle_id
 
         pub OraclesMap get(oracles) build(|conf: &GenesisConfig<T>| {
             conf.default_oracles.iter().map(|&(ref oracle_id, ref source_node, ref external_name)| {
@@ -64,29 +59,21 @@ decl_storage! {
         }): map T::OracleId => OracleData<T>
     }
 
-    add_extra_genesis
-    {
+    add_extra_genesis {
         config(default_oracles): Vec<(T::OracleId, T::AccountId, AssetName)>;
     }
 }
 
 decl_module! {
-    pub struct Module<T: Trait> for enum Call where origin: T::Origin
-    {
+    pub struct Module<T: Trait> for enum Call where origin: T::Origin {
         fn deposit_event<T>() = default;
 
-        pub fn commit_external_value(origin,
-            oracle_id: T::OracleId,
-            new_external_value: T::ExternalValueType) -> Result
-        {
+        pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result {
             let who = ensure_signed(origin)?;
 
-            if <OraclesMap<T>>::get(oracle_id).source_node != who
-            {
+            if <OraclesMap<T>>::get(oracle_id).source_node != who {
                 Err("Can't commit price: no permission")
-            }
-            else
-            {
+            } else {
                 <OraclesMap<T>>::mutate(oracle_id, |data| {
                     data.external_value = Some((new_external_value, <timestamp::Module<T>>::get()));
                 });
@@ -95,8 +82,7 @@ decl_module! {
             }
         }
 
-        pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>)
-        {
+        pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>) {
             let who: T::AccountId = ensure_signed(origin)?;
 
             <OraclesMap<T>>::insert(Self::get_next_oracle_id(),
@@ -114,31 +100,30 @@ decl_module! {
 
 decl_event!(
     pub enum Event<T>
-    where OracleId = <T as Trait>::OracleId,
-          ExternalValueType = <T as Trait>::ExternalValueType,
-    {
+    where
+        OracleId = <T as Trait>::OracleId,
+        ExternalValueType = <T as Trait>::ExternalValueType, {
         ExternalValueStored(OracleId, ExternalValueType),
     }
 );
 
-impl<T: Trait> Module<T>
-{
-    fn get_next_oracle_id() -> T::OracleId
-    {
+impl<T: Trait> Module<T> {
+    fn get_next_oracle_id() -> T::OracleId {
         let id: T::OracleId = Self::last_oracle_id();
         <NextOracleId<T>>::mutate(|id| *id += One::one());
         id
     }
 
-    pub fn get_max_oracle_id() -> Option<T::OracleId>
-    {
-        if Self::last_oracle_id() != T::OracleId::default() { Some(Self::last_oracle_id()) } else { None }
+    pub fn get_max_oracle_id() -> Option<T::OracleId> {
+        if Self::last_oracle_id() != T::OracleId::default() {
+            Some(Self::last_oracle_id() - One::one())
+        } else {
+            None
+        }
     }
 
-    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType>
-    {
-        match <OraclesMap<T>>::get(oracle_id).external_value
-        {
+    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType> {
+        match <OraclesMap<T>>::get(oracle_id).external_value {
             Some((val, _time)) => Some(val),
             None => None,
         }

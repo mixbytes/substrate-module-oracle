@@ -63,8 +63,7 @@ mod oracle;
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core datastructures.
-pub mod opaque
-{
+pub mod opaque {
     use super::*;
 
     /// Opaque, encoded, unchecked extrinsic.
@@ -72,17 +71,13 @@ pub mod opaque
     #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
     pub struct UncheckedExtrinsic(#[cfg_attr(feature = "std", serde(with = "bytes"))] pub Vec<u8>);
     #[cfg(feature = "std")]
-    impl std::fmt::Debug for UncheckedExtrinsic
-    {
-        fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result
-        {
+    impl std::fmt::Debug for UncheckedExtrinsic {
+        fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
             write!(fmt, "{}", primitives::hexdisplay::HexDisplay::from(&self.0))
         }
     }
-    impl traits::Extrinsic for UncheckedExtrinsic
-    {
-        fn is_signed(&self) -> Option<bool>
-        {
+    impl traits::Extrinsic for UncheckedExtrinsic {
+        fn is_signed(&self) -> Option<bool> {
             None
         }
     }
@@ -112,16 +107,14 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 
 /// The version infromation used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
-pub fn native_version() -> NativeVersion
-{
+pub fn native_version() -> NativeVersion {
     NativeVersion {
         runtime_version: VERSION,
         can_author_with: Default::default(),
     }
 }
 
-impl system::Trait for Runtime
-{
+impl system::Trait for Runtime {
     /// The identifier used to distinguish between accounts.
     type AccountId = AccountId;
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
@@ -146,13 +139,11 @@ impl system::Trait for Runtime
     type Origin = Origin;
 }
 
-impl aura::Trait for Runtime
-{
+impl aura::Trait for Runtime {
     type HandleReport = ();
 }
 
-impl consensus::Trait for Runtime
-{
+impl consensus::Trait for Runtime {
     /// The identifier we use to refer to authorities.
     type SessionKey = AuthorityId;
     // The aura module handles offline-reports internally
@@ -162,8 +153,7 @@ impl consensus::Trait for Runtime
     type Log = Log;
 }
 
-impl indices::Trait for Runtime
-{
+impl indices::Trait for Runtime {
     /// The type for recording indexing into the account enumeration. If this ever overflows, there
     /// will be problems!
     type AccountIndex = u32;
@@ -175,15 +165,13 @@ impl indices::Trait for Runtime
     type Event = Event;
 }
 
-impl timestamp::Trait for Runtime
-{
+impl timestamp::Trait for Runtime {
     /// A timestamp: seconds since the unix epoch.
     type Moment = u64;
     type OnTimestampSet = Aura;
 }
 
-impl balances::Trait for Runtime
-{
+impl balances::Trait for Runtime {
     /// The type for recording an account's balance.
     type Balance = u128;
     /// What to do if an account's free balance gets zeroed.
@@ -198,16 +186,14 @@ impl balances::Trait for Runtime
     type TransferPayment = ();
 }
 
-impl sudo::Trait for Runtime
-{
+impl sudo::Trait for Runtime {
     /// The uniquitous event type.
     type Event = Event;
     type Proposal = Call;
 }
 
 /// Used for the module oracle in `./oracle.rs`
-impl oracle::Trait for Runtime
-{
+impl oracle::Trait for Runtime {
     type Event = Event;
     type ExternalValueType = u128;
     type OracleId = u32;
