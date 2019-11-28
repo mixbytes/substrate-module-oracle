@@ -1,5 +1,5 @@
 [package]
-authors = ['Parity Technologies <admin@parity.io>']
+authors = ['sadsnake <sadsnake@mixbytes.io>']
 edition = '2018'
 name = 'oracle-node-runtime'
 version = '1.0.0'
