@@ -20,7 +20,7 @@ pub trait Trait: timestamp::Trait {
 
 #[derive(Encode, Decode)]
 pub struct OracleData<T: Trait> {
-    source_node: <T as system::Trait>::AccountId,
+    source_account: <T as system::Trait>::AccountId,
     external_name: AssetName,
     external_value: Option<(
         <T as Trait>::ExternalValueType,
@@ -31,7 +31,7 @@ pub struct OracleData<T: Trait> {
 impl<T: Trait> Default for OracleData<T> {
     fn default() -> Self {
         OracleData {
-            source_node: <T as system::Trait>::AccountId::default(),
+            source_account: <T as system::Trait>::AccountId::default(),
             external_name: AssetName::default(),
             external_value: None,
         }
@@ -41,26 +41,26 @@ impl<T: Trait> Default for OracleData<T> {
 decl_storage! {
     trait Store for Module<T: Trait> as Oracle {
         NextOracleId get(last_oracle_id) build(|conf: &GenesisConfig<T>| {
-            match conf.default_oracles.iter().map(|&(ref oracle_id, ref _sn, ref _en)| oracle_id).max() {
-                Some(&max) => max + One::one(),
-                None => T::OracleId::default(),
-            }
+            let mut res = T::OracleId::default();
+            for _ in 0..conf.default_oracles.len() { res += One::one(); };
+            res
         }): T::OracleId;
-        // ToDo add check for oracle_id
 
         pub OraclesMap get(oracles) build(|conf: &GenesisConfig<T>| {
-            conf.default_oracles.iter().map(|&(ref oracle_id, ref source_node, ref external_name)| {
-                (oracle_id.clone(), OracleData {
-                                        source_node: source_node.clone(),
-                                        external_name: external_name.clone(),
-                                        external_value: None
-                                    })
+            let oracle_id = T::OracleId::default();
+            let post_inc = |id: &mut T::OracleId| {let tmp = id.clone(); id += One::one; tmp};
+            conf.default_oracles.iter().map(|&(ref source_account, ref external_name)| {
+                (post_inc(&mut oracle_id),
+                 OracleData { source_account: source_account.clone(),
+                              external_name: external_name.clone(),
+                              external_value: None
+                 })
             }).collect::<Vec<_>>()
         }): map T::OracleId => OracleData<T>
     }
 
     add_extra_genesis {
-        config(default_oracles): Vec<(T::OracleId, T::AccountId, AssetName)>;
+        config(default_oracles): Vec<(T::AccountId, AssetName)>;
     }
 }
 
@@ -71,7 +71,7 @@ decl_module! {
         pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result {
             let who = ensure_signed(origin)?;
 
-            if <OraclesMap<T>>::get(oracle_id).source_node != who {
+            if <OraclesMap<T>>::get(oracle_id).source_account != who {
                 Err("Can't commit price: no permission")
             } else {
                 <OraclesMap<T>>::mutate(oracle_id, |data| {
@@ -87,7 +87,7 @@ decl_module! {
 
             <OraclesMap<T>>::insert(Self::get_next_oracle_id(),
                 OracleData {
-                    source_node: who,
+                    source_account: who,
                     external_name: external_name,
                     external_value: match start_external_value {
                         Some(ex_value) => Some((ex_value, <timestamp::Module<T>>::get())),

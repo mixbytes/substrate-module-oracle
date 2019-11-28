@@ -1,8 +1,8 @@
 [package]
-authors = ['sadsnake <sadsnake@mixbytes.io>']
+authors = ['Parity Technologies <admin@parity.io>']
 edition = '2018'
-name = 'substrate-module-oracle-runtime'
-version = '0.0.1'
+name = 'oracle-node-runtime'
+version = '1.0.0'
 
 [dependencies.aura]
 default_features = false
