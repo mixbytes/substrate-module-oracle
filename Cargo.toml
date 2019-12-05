@@ -1,3 +1,10 @@
+[package]
+authors = ['sadsnake <sadsnake@mixbytes.io>']
+build = 'build.rs'
+edition = '2018'
+name = 'oracle-node'
+version = '1.0.0'
+
 [dependencies]
 error-chain = '0.12'
 exit-future = '0.1'
