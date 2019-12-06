@@ -3,27 +3,17 @@ use support::{
     StorageValue,
 };
 
-use support::codec::{Decode, Encode};
-use timestamp;
-
+use codec::{Decode, Encode};
 use rstd::result;
-
 use rstd::vec::Vec;
-use runtime_primitives::traits::{CheckedAdd, Member, One, SimpleArithmetic};
+use sr_primitives::traits::{CheckedAdd, Member, One, SimpleArithmetic};
 use system::ensure_signed;
 
 type AssetName = Vec<u8>;
 
-pub trait Trait: timestamp::Trait
-{
-    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
-    type ExternalValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
-    type OracleId: Parameter + Member + SimpleArithmetic + Default + Copy;
-}
-
 #[derive(Encode, Decode)]
-pub struct OracleData<T: Trait>
-{
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct OracleData<T: Trait> {
     source_account: <T as system::Trait>::AccountId,
     external_name: AssetName,
     external_value: Option<(
@@ -32,16 +22,20 @@ pub struct OracleData<T: Trait>
     )>,
 }
 
-impl<T: Trait> Default for OracleData<T>
-{
-    fn default() -> Self
-    {
+impl<T: Trait> Default for OracleData<T> {
+    fn default() -> Self {
         OracleData {
             source_account: <T as system::Trait>::AccountId::default(),
             external_name: AssetName::default(),
             external_value: None,
         }
     }
+}
+
+pub trait Trait: timestamp::Trait {
+    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+    type ExternalValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
+    type OracleId: Parameter + Member + SimpleArithmetic + Default + Copy;
 }
 
 decl_storage! {
@@ -79,43 +73,42 @@ decl_storage! {
 }
 
 decl_module! {
-    pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-        fn deposit_event<T>() = default;
+ pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+     fn deposit_event() = default;
 
-        pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result 
-        {
-            let who = ensure_signed(origin)?;
+     pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result
+     {
+         let who = ensure_signed(origin)?;
 
-            if <OraclesMap<T>>::get(oracle_id).source_account != who
-            {
-                Err("Can't commit external value: no permission")
-            }
-            else
-            {
-                <OraclesMap<T>>::mutate(oracle_id, |data| {
-                    data.external_value = Some((new_external_value, <timestamp::Module<T>>::get()));
-                });
-                Self::deposit_event(RawEvent::ExternalValueStored(oracle_id, new_external_value));
-                Ok(())
-            }
-        }
+         if <OraclesMap<T>>::get(oracle_id).source_account != who
+         {
+             Err("Can't commit external value: no permission")
+         }
+         else
+         {
+             <OraclesMap<T>>::mutate(oracle_id, |data| {
+                 data.external_value = Some((new_external_value, <timestamp::Module<T>>::get()));
+             });
+             Self::deposit_event(RawEvent::ExternalValueStored(oracle_id, new_external_value));
+             Ok(())
+         }
+     }
 
-        pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>) 
-        {
-            let who: T::AccountId = ensure_signed(origin)?;
+     pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>)
+     {
+         let who: T::AccountId = ensure_signed(origin)?;
 
-            <OraclesMap<T>>::insert(Self::get_next_oracle_id()?,
-                OracleData {
-                    source_account: who,
-                    external_name: external_name,
-                    external_value: match start_external_value {
-                        Some(ex_value) => Some((ex_value, <timestamp::Module<T>>::get())),
-                        None => None,
-                    },
-                });
-        }
-   }
-}
+         <OraclesMap<T>>::insert(Self::get_next_oracle_id()?,
+             OracleData {
+                 source_account: who,
+                 external_name: external_name,
+                 external_value: match start_external_value {
+                     Some(ex_value) => Some((ex_value, <timestamp::Module<T>>::get())),
+                     None => None,
+                 },
+             });
+     }
+} }
 
 decl_event!(
     pub enum Event<T>
@@ -127,14 +120,11 @@ decl_event!(
     }
 );
 
-impl<T: Trait> Module<T>
-{
-    fn get_next_oracle_id() -> result::Result<T::OracleId, &'static str>
-    {
+impl<T: Trait> Module<T> {
+    fn get_next_oracle_id() -> result::Result<T::OracleId, &'static str> {
         let mut result = Ok(Self::last_oracle_id());
 
-        NextOracleId::<T>::mutate(|id| match id.checked_add(&One::one())
-        {
+        NextOracleId::<T>::mutate(|id| match id.checked_add(&One::one()) {
             Some(res) => *id = res,
             None => result = Err("T::OracleId overflow. Can't get next id."),
         });
@@ -142,22 +132,16 @@ impl<T: Trait> Module<T>
         result
     }
 
-    pub fn get_max_oracle_id() -> Option<T::OracleId>
-    {
-        if Self::last_oracle_id() != T::OracleId::default()
-        {
+    pub fn get_max_oracle_id() -> Option<T::OracleId> {
+        if Self::last_oracle_id() != T::OracleId::default() {
             Some(Self::last_oracle_id() - One::one())
-        }
-        else
-        {
+        } else {
             None
         }
     }
 
-    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType>
-    {
-        match <OraclesMap<T>>::get(oracle_id).external_value
-        {
+    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType> {
+        match <OraclesMap<T>>::get(oracle_id).external_value {
             Some((val, _time)) => Some(val),
             None => None,
         }
