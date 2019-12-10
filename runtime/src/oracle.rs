@@ -9,38 +9,51 @@ use rstd::vec::Vec;
 use sr_primitives::traits::{CheckedAdd, Member, One, SimpleArithmetic};
 use system::ensure_signed;
 
-type AssetName = Vec<u8>;
+type ExternalValueName = Vec<u8>;
 
 #[derive(Encode, Decode)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct OracleData<T: Trait> {
+    /// Account with permission to commit external value into storage
     source_account: <T as system::Trait>::AccountId,
-    external_name: AssetName,
+
+    /// It's name of external value
+    external_name: ExternalValueName,
+
+    /// External value and external value time of store
     external_value: Option<(
         <T as Trait>::ExternalValueType,
         <T as timestamp::Trait>::Moment,
     )>,
 }
 
+/// Default trait is needed for use type in storage map container
 impl<T: Trait> Default for OracleData<T> {
     fn default() -> Self {
         OracleData {
             source_account: <T as system::Trait>::AccountId::default(),
-            external_name: AssetName::default(),
+            external_name: ExternalValueName::default(),
             external_value: None,
         }
     }
 }
 
+/// Current module config types
 pub trait Trait: timestamp::Trait {
+    /// Substrate needed
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+
     type ExternalValueType: Member + Parameter + SimpleArithmetic + Default + Copy;
     type OracleId: Parameter + Member + SimpleArithmetic + Default + Copy;
 }
 
 decl_storage! {
     trait Store for Module<T: Trait> as Oracle {
-        NextOracleId get(last_oracle_id) build(|conf: &GenesisConfig<T>| {
+        /// Oracles id sequence
+        /// Start with len of default oracles
+        NextOracleId 
+            get(last_oracle_id)
+            build(|conf: &GenesisConfig<T>| {
             let mut res = T::OracleId::default();
             for _ in 0..conf.default_oracles.len() {
                 res = res.checked_add(&One::one()).expect("Too much oracles in config, T::OracleId overflow.");
@@ -48,7 +61,11 @@ decl_storage! {
             res
         }): T::OracleId;
 
-        pub OraclesMap get(oracles) build(|conf: &GenesisConfig<T>| {
+        /// Oracles
+        /// Can initialize from GenesisConfig
+        pub OraclesMap 
+            get(oracles)
+            build(|conf: &GenesisConfig<T>| {
             let mut oracle_id = T::OracleId::default();
 
             let post_inc = |id: &mut T::OracleId| {
@@ -64,14 +81,17 @@ decl_storage! {
                               external_value: None
                  })
             }).collect::<Vec<_>>()
-        }): map T::OracleId => OracleData<T>
+        }): map T::OracleId => OracleData<T>;
     }
 
+    // Field in configuration with source for oracle and external value name. 
+    // Id in order of enumeration
     add_extra_genesis {
-        config(default_oracles): Vec<(T::AccountId, AssetName)>;
+        config(default_oracles): Vec<(T::AccountId, ExternalValueName)>;
     }
 }
 
+// External API. Can be called from external client (like polkadot-js)
 decl_module! {
  pub struct Module<T: Trait> for enum Call where origin: T::Origin {
      fn deposit_event() = default;
@@ -120,6 +140,7 @@ decl_event!(
     }
 );
 
+/// Internal API. Can be called from other modules
 impl<T: Trait> Module<T> {
     fn get_next_oracle_id() -> result::Result<T::OracleId, &'static str> {
         let mut result = Ok(Self::last_oracle_id());
