@@ -104,14 +104,14 @@ decl_module! {
      {
          let who = ensure_signed(origin)?;
 
-         if <OraclesMap<T>>::get(oracle_id).source_account != who
+         if OraclesMap::<T>::get(oracle_id).source_account != who
          {
              Err("Can't commit external value: no permission")
          }
          else
          {
-             <OraclesMap<T>>::mutate(oracle_id, |data| {
-                 data.external_value = Some((new_external_value, <timestamp::Module<T>>::get()));
+             OraclesMap::<T>::mutate(oracle_id, |data| {
+                 data.external_value = Some((new_external_value, timestamp::Module::<T>::get()));
              });
              Self::deposit_event(RawEvent::ExternalValueStored(oracle_id, new_external_value));
              Ok(())
@@ -122,7 +122,7 @@ decl_module! {
      {
          let who: T::AccountId = ensure_signed(origin)?;
 
-         <OraclesMap<T>>::insert(Self::get_next_oracle_id()?,
+         OraclesMap::<T>::insert(Self::get_next_oracle_id()?,
              OracleData {
                  source_account: who,
                  external_name: external_name,
@@ -174,7 +174,7 @@ impl<T: Trait> Module<T>
 
     pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType>
     {
-        match <OraclesMap<T>>::get(oracle_id).external_value
+        match OraclesMap::<T>::get(oracle_id).external_value
         {
             Some((val, _time)) => Some(val),
             None => None,
