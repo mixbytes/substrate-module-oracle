@@ -13,8 +13,7 @@ type ExternalValueName = Vec<u8>;
 
 #[derive(Encode, Decode)]
 #[cfg_attr(feature = "std", derive(Debug))]
-pub struct OracleData<T: Trait>
-{
+pub struct OracleData<T: Trait> {
     /// Account with permission to commit external value into storage
     source_account: <T as system::Trait>::AccountId,
 
@@ -29,10 +28,8 @@ pub struct OracleData<T: Trait>
 }
 
 /// Default trait is needed for use type in storage map container
-impl<T: Trait> Default for OracleData<T>
-{
-    fn default() -> Self
-    {
+impl<T: Trait> Default for OracleData<T> {
+    fn default() -> Self {
         OracleData {
             source_account: <T as system::Trait>::AccountId::default(),
             external_name: ExternalValueName::default(),
@@ -42,8 +39,7 @@ impl<T: Trait> Default for OracleData<T>
 }
 
 /// Current module config types
-pub trait Trait: timestamp::Trait
-{
+pub trait Trait: timestamp::Trait {
     /// Substrate needed
     type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 
@@ -145,14 +141,11 @@ decl_event!(
 );
 
 /// Internal API. Can be called from other modules
-impl<T: Trait> Module<T>
-{
-    fn get_next_oracle_id() -> result::Result<T::OracleId, &'static str>
-    {
+impl<T: Trait> Module<T> {
+    fn get_next_oracle_id() -> result::Result<T::OracleId, &'static str> {
         let mut result = Ok(Self::last_oracle_id());
 
-        IdSequence::<T>::mutate(|id| match id.checked_add(&One::one())
-        {
+        IdSequence::<T>::mutate(|id| match id.checked_add(&One::one()) {
             Some(res) => *id = res,
             None => result = Err("T::OracleId overflow. Can't get next id."),
         });
@@ -160,22 +153,16 @@ impl<T: Trait> Module<T>
         result
     }
 
-    pub fn get_max_oracle_id() -> Option<T::OracleId>
-    {
-        if Self::last_oracle_id() != T::OracleId::default()
-        {
+    pub fn get_max_oracle_id() -> Option<T::OracleId> {
+        if Self::last_oracle_id() != T::OracleId::default() {
             Some(Self::last_oracle_id() - One::one())
-        }
-        else
-        {
+        } else {
             None
         }
     }
 
-    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType>
-    {
-        match OraclesMap::<T>::get(oracle_id).external_value
-        {
+    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType> {
+        match OraclesMap::<T>::get(oracle_id).external_value {
             Some((val, _time)) => Some(val),
             None => None,
         }
