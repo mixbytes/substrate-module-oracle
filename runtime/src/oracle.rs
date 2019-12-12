@@ -62,7 +62,7 @@ decl_storage! {
         }): T::OracleId;
 
         /// Oracles
-        /// Can initialize from GenesisConfig
+        /// Can be initialized from GenesisConfig
         pub OraclesMap
             get(oracles)
             build(|conf: &GenesisConfig<T>| {
@@ -84,28 +84,23 @@ decl_storage! {
         }): map T::OracleId => OracleData<T>;
     }
 
-    // Field in configuration with source for oracle and external value name.
-    // Id in order of enumeration
+    // Add custom field to module configuration
     add_extra_genesis {
         config(default_oracles): Vec<(T::AccountId, ExternalValueName)>;
     }
 }
 
-// External API. Can be called from external client (like polkadot-js)
+// External API. Can be called from external client.
 decl_module! {
  pub struct Module<T: Trait> for enum Call where origin: T::Origin {
      fn deposit_event() = default;
 
-     pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result
-     {
+     pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result {
          let who = ensure_signed(origin)?;
 
-         if OraclesMap::<T>::get(oracle_id).source_account != who
-         {
+         if OraclesMap::<T>::get(oracle_id).source_account != who {
              Err("Can't commit external value: no permission")
-         }
-         else
-         {
+         } else {
              OraclesMap::<T>::mutate(oracle_id, |data| {
                  data.external_value = Some((new_external_value, timestamp::Module::<T>::get()));
              });
@@ -114,8 +109,7 @@ decl_module! {
          }
      }
 
-     pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>)
-     {
+     pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>) {
          let who: T::AccountId = ensure_signed(origin)?;
 
          OraclesMap::<T>::insert(Self::get_next_oracle_id()?,
@@ -132,15 +126,12 @@ decl_module! {
 
 decl_event!(
     pub enum Event<T>
-    where
-        OracleId = <T as Trait>::OracleId,
-        ExternalValueType = <T as Trait>::ExternalValueType,
-    {
+    where OracleId = <T as Trait>::OracleId, ExternalValueType = <T as Trait>::ExternalValueType {
         ExternalValueStored(OracleId, ExternalValueType),
     }
 );
 
-/// Internal API. Can be called from other modules
+// Internal API. Can be called from other modules
 impl<T: Trait> Module<T> {
     fn get_next_oracle_id() -> result::Result<T::OracleId, &'static str> {
         let mut result = Ok(Self::last_oracle_id());
