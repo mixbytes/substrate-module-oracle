@@ -226,8 +226,8 @@ impl sudo::Trait for Runtime {
 /// Used for the module template in `./oracle.rs`
 impl oracle::Trait for Runtime {
     type Event = Event;
-    type OracleId = u32;
-    type ExternalValueType = u32;
+    type OracleId = u64;
+    type ExternalValueType = u128;
 }
 
 construct_runtime!(
@@ -244,7 +244,7 @@ construct_runtime!(
 		Balances: balances::{default, Error},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo,
-		OracleModule: oracle::{Module, Call, Storage, Event<T>},
+		Oracle: oracle::{Module, Call, Storage, Config<T>, Event<T>},
 		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
 	}
 );
