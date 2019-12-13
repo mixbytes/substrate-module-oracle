@@ -152,7 +152,7 @@ impl<T: Trait> Module<T> {
         }
     }
 
-    pub fn get_current_asset_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType> {
+    pub fn get_current_value(oracle_id: T::OracleId) -> Option<T::ExternalValueType> {
         match OraclesMap::<T>::get(oracle_id).external_value {
             Some((val, _time)) => Some(val),
             None => None,
