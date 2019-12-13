@@ -9,7 +9,7 @@ edition = "2018"
 members = ["runtime"]
 
 [[bin]]
-name = "substrate-test-node"
+name = "oracle-module-node"
 path = "src/main.rs"
 
 [dependencies]
