@@ -1,5 +1,5 @@
 use keyring::AccountKeyring;
-use oracle_client::ModuleApi;
+use oracle_client::{ModuleApi,ValueType};
 use primitives::H256 as Hash;
 use substrate_api_client::Api;
 
@@ -17,33 +17,40 @@ macro_rules! init_api {
 }
 
 #[test]
-fn oracle_commit_and_store() {}
-
-#[test]
-fn test_autoincrement()
+fn autoincrement()
 {
     let api = init_api!(Alice);
 
-    let id = api.get_next_oracle_id().unwrap();
+    let id = api.get_next_oracle_id().expect("Error in get from store");
+
+    log::debug!("Get id {} from storage", id);
+
     assert!(api
-        .create_oracle("test_autoincrement".to_owned().into_bytes(), None)
+        .create_oracle("++".to_owned().into_bytes(), None)
         .is_some());
-    assert_ne!(api.get_next_oracle_id().unwrap(), id);
+
+    log::debug!("Create oracle");
+    assert_eq!(
+        api.get_next_oracle_id().expect("Get next oracle id"),
+        id + 1
+    );
 }
 
 #[test]
-fn test_create_oracle()
+fn create_oracle()
 {
     let alice_api = init_api!(Alice);
 
     let name = "test_create_oracle".to_owned().into_bytes();
     assert!(alice_api.create_oracle(name.clone(), None).is_some());
+    log::debug!("Send create oracle via api.");
 
     let (events_in, events_out) = channel();
     alice_api.subscribe_events(events_in.clone());
 
     for _ in 1..10
     {
+        log::debug!("Start recv events.");
         let raw = events_out.recv().unwrap();
         let event_str = hexstr_to_vec(raw).unwrap();
 
@@ -77,3 +84,18 @@ fn test_create_oracle()
     }
     assert!(false, "Error: Oracle not created.");
 }
+
+#[test]
+fn commit_value()
+{
+    let api = init_api!(Alice);
+    let id = api.get_next_oracle_id().expect("Error in get from store");
+    api.create_oracle("commit".to_owned().into_bytes(), None);
+
+    let value: ValueType = ValueType::from(100);
+    api.commit_external_value(&id, value);
+
+    let bob_api = init_api!(Bob);
+    assert_eq!(bob_api.get_current_value(&id).expect("Value must be here"), value);
+}
+
