@@ -115,7 +115,7 @@ pub struct Module<T: Trait> for enum Call where origin: T::Origin {
             let who: T::AccountId = ensure_signed(origin)?;
 
             let new_id = Self::get_next_oracle_id()?;
-            OraclesMap::<T>::insert(new_id,
+            OraclesMap::<T>::insert(new_id.clone(),
                 OracleData {
                     source_account: who.clone(),
                     external_name: external_name.clone(),

@@ -10,6 +10,9 @@ mod cli;
 
 pub use substrate_cli::{VersionInfo, IntoExit, error};
 
+#[cfg(test)]
+mod test;
+
 fn main() -> Result<(), cli::error::Error> {
 	let version = VersionInfo {
 		name: "Substrate Node",

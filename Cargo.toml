@@ -6,7 +6,7 @@ build = "build.rs"
 edition = "2018"
 
 [workspace]
-members = ["runtime"]
+members = ["runtime", "client"]
 
 [[bin]]
 name = "oracle-module-node"
@@ -101,6 +101,30 @@ rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
 
 [dependencies.oracle-module-runtime]
 path = "runtime"
+
+[dev-dependencies.substrate-api-client]
+git = "https://github.com/scs/substrate-api-client"
+rev = "5a825ff965bbae4ac0967ac23ede25c50ce66487"
+
+[dev-dependencies.keyring]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "substrate-keyring"
+
+[dev-dependencies.oracle-client]
+path = "client"
+
+[dev-dependencies.system]
+git = "https://github.com/paritytech/substrate"
+rev = "3bf9540e72df5ecb3955845764dfee7dcdbb26b5"
+package = "palette-system"
+default-features=false
+
+[dev-dependencies.codec]
+package = "parity-scale-codec"
+features = ["derive"]
+version = "1.0.0"
+default-features = false
 
 [build-dependencies]
 vergen = "3.0.4"
