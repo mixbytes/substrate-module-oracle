@@ -92,42 +92,52 @@ decl_storage! {
 
 // External API. Can be called from external client.
 decl_module! {
- pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-     fn deposit_event() = default;
+pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+        fn deposit_event() = default;
 
-     pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result {
-         let who = ensure_signed(origin)?;
+        pub fn commit_external_value(origin, oracle_id: T::OracleId, new_external_value: T::ExternalValueType) -> Result {
+            let who = ensure_signed(origin)?;
 
-         if OraclesMap::<T>::get(oracle_id).source_account != who {
-             Err("Can't commit external value: no permission")
-         } else {
-             OraclesMap::<T>::mutate(oracle_id, |data| {
-                 data.external_value = Some((new_external_value, timestamp::Module::<T>::get()));
-             });
-             Self::deposit_event(RawEvent::ExternalValueStored(oracle_id, new_external_value));
-             Ok(())
-         }
-     }
+            if OraclesMap::<T>::get(oracle_id).source_account != who {
+                Err("Can't commit external value: no permission")
+            } else {
+                OraclesMap::<T>::mutate(oracle_id, |data| {
+                    data.external_value = Some((new_external_value, timestamp::Module::<T>::get()));
+                });
 
-     pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>) {
-         let who: T::AccountId = ensure_signed(origin)?;
+                Self::deposit_event(RawEvent::ExternalValueStored(oracle_id, new_external_value));
 
-         OraclesMap::<T>::insert(Self::get_next_oracle_id()?,
-             OracleData {
-                 source_account: who,
-                 external_name: external_name,
-                 external_value: match start_external_value {
-                     Some(ex_value) => Some((ex_value, <timestamp::Module<T>>::get())),
-                     None => None,
-                 },
-             });
-     }
-} }
+                Ok(())
+            }
+        }
+
+        pub fn create_oracle(origin, external_name: Vec<u8>, start_external_value: Option<T::ExternalValueType>) {
+            let who: T::AccountId = ensure_signed(origin)?;
+
+            let new_id = Self::get_next_oracle_id()?;
+            OraclesMap::<T>::insert(new_id,
+                OracleData {
+                    source_account: who.clone(),
+                    external_name: external_name.clone(),
+                    external_value: match start_external_value {
+                        Some(ex_value) => Some((ex_value, <timestamp::Module<T>>::get())),
+                        None => None,
+                    },
+                });
+            Self::deposit_event(RawEvent::OracleCreated(new_id, who, external_name));
+        }
+    } 
+}
 
 decl_event!(
     pub enum Event<T>
-    where OracleId = <T as Trait>::OracleId, ExternalValueType = <T as Trait>::ExternalValueType {
+    where
+        OracleId = <T as Trait>::OracleId,
+        ExternalValueType = <T as Trait>::ExternalValueType,
+        AccountId = <T as system::Trait>::AccountId,
+    {
         ExternalValueStored(OracleId, ExternalValueType),
+        OracleCreated(OracleId, AccountId, ExternalValueName),
     }
 );
 
