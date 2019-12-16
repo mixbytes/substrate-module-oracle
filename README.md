@@ -19,7 +19,6 @@ cargo run -- --dev --rpc-external --rpc-port 9955 --ws-external --ws-port 9944 -
 
 # Run unit and CI tests. 
 # Before that exec previous command for start node in in the background (**todo**: fix this temporary solution)
-
 cargo test 
 
 ```
