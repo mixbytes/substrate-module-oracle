@@ -92,7 +92,7 @@ fn commit_value()
     let id = api.get_next_oracle_id().expect("Error in get from store");
     api.create_oracle("commit".to_owned().into_bytes(), None);
 
-    let value: ValueType = ValueType::from(100);
+    let value = ValueType::from(100);
     api.commit_external_value(&id, value);
 
     let bob_api = init_api!(Bob);
