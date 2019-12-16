@@ -6,12 +6,7 @@ Simple oracle substrate-module written in Rust.
 
 ### Install dependencies
 
-```
-curl https://sh.rustup.rs -sSf | sh
-
-rustup default nightly
-rustup target add wasm32-unknown-unknown --toolchain nightly
-```
+Run script `./ci/install_rust.sh`.
 
 ### Build
 
