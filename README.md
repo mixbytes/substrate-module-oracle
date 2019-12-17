@@ -70,7 +70,7 @@ pub trait Trait: oracle::Trait {...}
 // In `decl_module` part
 fn func(origin) {
     let oracle_id = ...;
-    let data: OracleData = oracles::OraclesMap::<T>::get(oracle_id)?;
+    let data: OracleData = oracle::OraclesMap::<T>::get(oracle_id)?;
     if let Some((external_value, timestamp)) = data.external_value {
         // Here we have `external_value`
     }
