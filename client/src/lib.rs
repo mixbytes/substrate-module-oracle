@@ -5,22 +5,24 @@ extern crate rand;
 extern crate runtime_primitives;
 extern crate substrate_api_client;
 
+use hex::FromHexError;
+
 use runtime_primitives::MultiSignature;
-use substrate_api_client::utils::{hexstr_to_u256, hexstr_to_u64};
+use substrate_api_client::utils::{hexstr_to_u64, hexstr_to_vec};
 use substrate_api_client::{compose_extrinsic, Api};
 
-use codec::Encode;
+use codec::{Decode, Encode};
 use primitives::crypto::Pair;
 
 use primitives::H256 as Hash;
 
-use primitive_types::U256;
 use runtime_primitives::AccountId32;
 use substrate_api_client::extrinsic::xt_primitives::UncheckedExtrinsicV4;
 
 pub type Id = u64;
-pub type ValueType = U256;
+pub type ValueType = u128;
 pub type ValueName = Vec<u8>;
+pub type Moment = u64;
 
 pub const MODULE: &str = "Oracle";
 pub const CREATE: &str = "create_oracle";
@@ -28,7 +30,20 @@ pub const COMMIT_VALUE: &str = "commit_external_value";
 pub const ORACLES: &str = "OraclesMap";
 pub const ID_SEQUENCE: &str = "IdSequence";
 
-pub type Data = (AccountId32, ValueName, (ValueType, Vec<u8>)); // ToDo timestamp
+#[derive(Encode, Decode)]
+struct ExternalValueData
+{
+    value: ValueType,
+    moment: Moment,
+}
+
+#[derive(Encode, Decode)]
+pub struct Oracle
+{
+    owner: AccountId32,
+    name: ValueName,
+    data: Option<ExternalValueData>,
+}
 
 pub trait ModuleApi
 {
@@ -37,7 +52,7 @@ pub trait ModuleApi
 
     fn get_current_value(&self, oracle_id: &Id) -> Option<ValueType>;
     fn get_next_oracle_id(&self) -> Option<Id>;
-    fn get_oracle_data(&self, oracle_id: &Id) -> Option<Data>;
+    fn get_oracle_data(&self, oracle_id: &Id) -> Option<Oracle>;
 }
 
 pub type CreateOracleCallXt = UncheckedExtrinsicV4<([u8; 2], Vec<u8>, Option<ValueType>)>;
@@ -73,14 +88,7 @@ where
 
     fn get_current_value(&self, oracle_id: &Id) -> Option<ValueType>
     {
-        self.get_storage(MODULE, ORACLES, Some(oracle_id.to_owned().encode()))
-            .map_err(|err| log::error!("{}", err))
-            .ok()
-            .and_then(|res| {
-                hexstr_to_u256(res)
-                    .map_err(|err| log::error!("{}", err))
-                    .ok()
-            })
+        self.get_oracle_data(&oracle_id).and_then(|oracle| oracle.data).and_then(|data| Some(data.value))
     }
 
     fn get_next_oracle_id(&self) -> Option<Id>
@@ -95,15 +103,27 @@ where
             })
     }
 
-    fn get_oracle_data(&self, oracle_id: &u64) -> Option<Data>
+    fn get_oracle_data(&self, oracle_id: &Id) -> Option<Oracle>
     {
-        self.get_storage(MODULE, ORACLES, Some(oracle_id.to_owned().encode()))
-            .map_err(|err| log::error!("{}", err))
-            .ok()
-            .and_then(|res| {
-                dbg!(res);
+        match self.get_storage(MODULE, ORACLES, Some(oracle_id.to_owned().encode()))
+        {
+            Ok(raw) => match hexstr_to_vec(raw)
+            {
+                Ok(raw_vec) =>
+                {
+                    Some(Decode::decode(&mut raw_vec.as_slice()).unwrap())
+                }
+                Err(err) =>
+                {
+                    log::error!("{}", err);
+                    None
+                }
+            },
+            Err(err) =>
+            {
+                log::error!("{}", err);
                 None
-            })
+            }
+        }
     }
 }
-

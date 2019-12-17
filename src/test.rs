@@ -1,5 +1,6 @@
+use log::{debug, error};
 use keyring::AccountKeyring;
-use oracle_client::{ModuleApi,ValueType};
+use oracle_client::ModuleApi;
 use primitives::H256 as Hash;
 use substrate_api_client::Api;
 
@@ -23,13 +24,13 @@ fn autoincrement()
 
     let id = api.get_next_oracle_id().expect("Error in get from store");
 
-    log::debug!("Get id {} from storage", id);
+    debug!("Get id {} from storage", id);
 
     assert!(api
         .create_oracle("++".to_owned().into_bytes(), None)
         .is_some());
 
-    log::debug!("Create oracle");
+    debug!("Create oracle");
     assert_eq!(
         api.get_next_oracle_id().expect("Get next oracle id"),
         id + 1
@@ -43,14 +44,14 @@ fn create_oracle()
 
     let name = "test_create_oracle".to_owned().into_bytes();
     assert!(alice_api.create_oracle(name.clone(), None).is_some());
-    log::debug!("Send create oracle via api.");
+    debug!("Send create oracle via api.");
 
     let (events_in, events_out) = channel();
     alice_api.subscribe_events(events_in.clone());
 
     for _ in 1..10
     {
-        log::debug!("Start recv events.");
+        debug!("Start recv events.");
         let raw = events_out.recv().unwrap();
         let event_str = hexstr_to_vec(raw).unwrap();
 
@@ -77,7 +78,7 @@ fn create_oracle()
             }
             Err(err) =>
             {
-                log::error!("{}", err);
+                error!("{}", err);
                 assert!(false, "Error in event decoding");
             }
         }
@@ -92,10 +93,14 @@ fn commit_value()
     let id = api.get_next_oracle_id().expect("Error in get from store");
     api.create_oracle("commit".to_owned().into_bytes(), None);
 
-    let value = ValueType::from(100);
+    let value = 100u128;
     api.commit_external_value(&id, value);
 
     let bob_api = init_api!(Bob);
-    assert_eq!(bob_api.get_current_value(&id).expect("Value must be here"), value);
+    assert_eq!(
+        bob_api
+            .get_current_value(&id)
+            .expect("Can't get value from store."),
+        value
+    );
 }
-
