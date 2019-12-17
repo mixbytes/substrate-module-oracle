@@ -38,6 +38,8 @@ use keyring::AccountKeyring;
 use substrate_api_client::Api;
 use oracle_client::{ModuleApi,ValueType};
 
+const URL: &str = "127.0.0.1:9944";
+
 fn main()
 {
     let api = Api::new(format!("ws://{}", URL)).set_signer(AccountKeyring::Alice);
@@ -54,6 +56,8 @@ fn main()
 use keyring::AccountKeyring;
 use substrate_api_client::Api;
 use oracle_client::{ModuleApi,ValueType};
+
+const URL: &str = "127.0.0.1:9944";
 
 fn main()
 {
