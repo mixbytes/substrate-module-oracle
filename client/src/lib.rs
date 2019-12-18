@@ -31,22 +31,19 @@ pub const ORACLES: &str = "OraclesMap";
 pub const ID_SEQUENCE: &str = "IdSequence";
 
 #[derive(Encode, Decode)]
-struct ExternalValueData
-{
+struct ExternalValueData {
     value: ValueType,
     moment: Moment,
 }
 
 #[derive(Encode, Decode)]
-pub struct Oracle
-{
+pub struct Oracle {
     owner: AccountId32,
     name: ValueName,
     data: Option<ExternalValueData>,
 }
 
-pub trait ModuleApi
-{
+pub trait ModuleApi {
     fn create_oracle(&self, external_name: ValueName, value: Option<ValueType>) -> Option<Hash>;
     fn commit_external_value(&self, oracle_id: &Id, external_value: ValueType) -> Option<Hash>;
 
@@ -63,8 +60,7 @@ where
     P: Pair,
     MultiSignature: From<P::Signature>,
 {
-    fn create_oracle(&self, external_name: ValueName, value: Option<ValueType>) -> Option<Hash>
-    {
+    fn create_oracle(&self, external_name: ValueName, value: Option<ValueType>) -> Option<Hash> {
         let extrinsic: CreateOracleCallXt =
             compose_extrinsic!(self, MODULE, CREATE, external_name, value);
         self.send_extrinsic(extrinsic.hex_encode())
@@ -72,8 +68,7 @@ where
             .ok()
     }
 
-    fn commit_external_value(&self, oracle_id: &Id, external_value: ValueType) -> Option<Hash>
-    {
+    fn commit_external_value(&self, oracle_id: &Id, external_value: ValueType) -> Option<Hash> {
         let extrinsic: CommitValueCallXt = compose_extrinsic!(
             self,
             MODULE,
@@ -86,13 +81,13 @@ where
             .ok()
     }
 
-    fn get_current_value(&self, oracle_id: &Id) -> Option<ValueType>
-    {
-        self.get_oracle_data(&oracle_id).and_then(|oracle| oracle.data).and_then(|data| Some(data.value))
+    fn get_current_value(&self, oracle_id: &Id) -> Option<ValueType> {
+        self.get_oracle_data(&oracle_id)
+            .and_then(|oracle| oracle.data)
+            .and_then(|data| Some(data.value))
     }
 
-    fn get_next_oracle_id(&self) -> Option<Id>
-    {
+    fn get_next_oracle_id(&self) -> Option<Id> {
         self.get_storage(MODULE, ID_SEQUENCE, None)
             .map_err(|err| log::error!("{}", err))
             .ok()
@@ -103,24 +98,16 @@ where
             })
     }
 
-    fn get_oracle_data(&self, oracle_id: &Id) -> Option<Oracle>
-    {
-        match self.get_storage(MODULE, ORACLES, Some(oracle_id.to_owned().encode()))
-        {
-            Ok(raw) => match hexstr_to_vec(raw)
-            {
-                Ok(raw_vec) =>
-                {
-                    Some(Decode::decode(&mut raw_vec.as_slice()).unwrap())
-                }
-                Err(err) =>
-                {
+    fn get_oracle_data(&self, oracle_id: &Id) -> Option<Oracle> {
+        match self.get_storage(MODULE, ORACLES, Some(oracle_id.to_owned().encode())) {
+            Ok(raw) => match hexstr_to_vec(raw) {
+                Ok(raw_vec) => Some(Decode::decode(&mut raw_vec.as_slice()).unwrap()),
+                Err(err) => {
                     log::error!("{}", err);
                     None
                 }
             },
-            Err(err) =>
-            {
+            Err(err) => {
                 log::error!("{}", err);
                 None
             }

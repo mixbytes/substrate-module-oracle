@@ -1,17 +1,8 @@
 use aura_primitives::sr25519::AuthorityId as AuraId;
 use grandpa_primitives::AuthorityId as GrandpaId;
 use oracle_module_runtime::{
-    AccountId,
-    AuraConfig,
-    BalancesConfig,
-    GenesisConfig,
-    GrandpaConfig,
-    IndicesConfig,
-    Signature,
-    SudoConfig,
-    SystemConfig,
-    WASM_BINARY,
-    OracleConfig,
+    AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, IndicesConfig,
+    OracleConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use primitives::{sr25519, Pair, Public};
 use sr_primitives::traits::{IdentifyAccount, Verify};
@@ -157,7 +148,7 @@ fn testnet_genesis(
             authorities: initial_authorities
                 .iter()
                 .map(|x| (x.1.clone(), 1))
-                .collect()
+                .collect(),
         }),
         oracle: Some(OracleConfig {
             default_oracles: vec![],

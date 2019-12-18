@@ -1,5 +1,5 @@
-use log::{debug, error};
 use keyring::AccountKeyring;
+use log::{debug, error};
 use oracle_client::ModuleApi;
 use primitives::H256 as Hash;
 use substrate_api_client::Api;
@@ -18,8 +18,7 @@ macro_rules! init_api {
 }
 
 #[test]
-fn autoincrement()
-{
+fn autoincrement() {
     let api = init_api!(Alice);
 
     let id = api.get_next_oracle_id().expect("Error in get from store");
@@ -38,8 +37,7 @@ fn autoincrement()
 }
 
 #[test]
-fn create_oracle()
-{
+fn create_oracle() {
     let alice_api = init_api!(Alice);
 
     let name = "test_create_oracle".to_owned().into_bytes();
@@ -49,20 +47,15 @@ fn create_oracle()
     let (events_in, events_out) = channel();
     alice_api.subscribe_events(events_in.clone());
 
-    for _ in 1..10
-    {
+    for _ in 1..10 {
         debug!("Start recv events.");
         let raw = events_out.recv().unwrap();
         let event_str = hexstr_to_vec(raw).unwrap();
 
-        match Vec::<system::EventRecord<Event, Hash>>::decode(&mut event_str.as_slice())
-        {
-            Ok(events) =>
-            {
-                for evr in &events
-                {
-                    if let Event::oracle(ev) = &evr.event
-                    {
+        match Vec::<system::EventRecord<Event, Hash>>::decode(&mut event_str.as_slice()) {
+            Ok(events) => {
+                for evr in &events {
+                    if let Event::oracle(ev) = &evr.event {
                         if let oracle::RawEvent::OracleCreated(
                             _oracle_id,
                             account_id,
@@ -76,8 +69,7 @@ fn create_oracle()
                     }
                 }
             }
-            Err(err) =>
-            {
+            Err(err) => {
                 error!("{}", err);
                 assert!(false, "Error in event decoding");
             }
@@ -87,8 +79,7 @@ fn create_oracle()
 }
 
 #[test]
-fn commit_value()
-{
+fn commit_value() {
     let api = init_api!(Alice);
     let id = api.get_next_oracle_id().expect("Error in get from store");
     api.create_oracle("commit".to_owned().into_bytes(), None);
